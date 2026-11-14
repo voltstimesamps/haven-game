@@ -54,3 +54,8 @@ q5.update = function () {
 		player.vel.y = 5
 	} 
 };
+//runs after each physics step, 60x a second
+
+q5.draw = function () {
+	background('skyblue');
+}
