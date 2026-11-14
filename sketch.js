@@ -1,25 +1,18 @@
-await Canvas();
+await Canvas(800, 450);
 world.gravity.y = 10;
 
-let ball = new Sprite();
-ball.diameter = 50;
-ball.img = '🤪';
+let player = new Sprite(0, -100, 50, 50);
+player.color = 'green'
+player.rotationLock = true;
+player.friction = 5;
 
-let groundA = new Sprite();
-groundA.x = -120;
-groundA.width = 220;
-groundA.rotation = 30;
-groundA.physics = STATIC;
-
-let groundB = new Sprite();
-groundB.x = 120;
-groundB.width = 220;
-groundB.rotation = -30;
-groundB.physics = STATIC;
-
+player.img = '🦉';
+player.debug = true;
+//runs before each physics step
 q5.update = function () {
-	background('skyblue');
-	text('click to jump!', 0, -50);
-
-	if (mouse.presses()) ball.vel.y = -5;
+	
 };
+
+q5.draw = function () {
+	background('skyblue');
+}
