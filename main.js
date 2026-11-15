@@ -1,54 +1,36 @@
-import { setState, drawState, updateState } from "./states.js";
-import * as level from "./level.js";
+import {
+  setState,
+  updateState,
+  drawState,
+  drawStateHud
+} from './states.js';
 
-await Canvas(800, 450);
-world.gravity.y = 5;
+import { fitCameraToCanvas } from './camera.js';
 
-let score = 0;
+// No size = fill the browser window.
+await Canvas();
+fitCameraToCanvas();
 
-let activeLevel = null;
-let activeLevelId = null;
-let tileGroups = [];
-let player = new Sprite(0, 0, 50, 50);
-player.color = 'green';
-player.rotationLock = true;
-player.friction = 5;
+// Box2D units: meters/s², with 60px to a meter. 30 gives a snappy,
+// non-floaty jump arc.
+world.gravity.y = 30;
 
-player.img = '🦉';
-player.debug = true;
+q5.windowResized = function () {
+  resizeCanvas(windowWidth, windowHeight);
+  fitCameraToCanvas();
+};
 
+q5.update = function () {
+  updateState();
+};
 
-function collect(p, coin) {
-	coin.delete();
-	score++;
-}
+q5.draw = function () {
+  drawState();
+};
 
-setState('setup');
+// Runs after q5play has drawn the sprites, so HUD text stays on top.
+q5.postProcess = function () {
+  drawStateHud();
+};
 
-//runs before each physics step
-q5.update = updateState;
-//runs after each physics step, 60x a second
-q5.draw = drawState;
-
-function setup() {
-  new Canvas(640, 360);
-
-  showLevel('menu/mainmenu');
-}
-
-function update() {
-  clear();
-
-  updatePlayer();
-
-  // Example level switching:
-  if (activeLevelId === 'menu/mainmenu' && kb.presses('enter')) {
-    showLevel('campaign1/one');
-  }
-
-  if (activeLevelId === 'campaign1/one' && kb.presses('escape')) {
-    showLevel('menu/mainmenu');
-  }
-}
-
-
+setState('menu');
