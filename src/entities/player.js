@@ -66,6 +66,7 @@ export function createPlayer(playerSettings) {
   sprite.hurtTimer = 0;
   sprite.mantleCooldown = 0;
   sprite.groundGrace = 0;
+  sprite.wasRunningOnGround = false;
 
   return sprite;
 }
@@ -119,8 +120,13 @@ export function updatePlayer(player) {
   const mantling = tryMantle(player, direction, onGround);
   applyVelocityChange(player);
 
+  const effectiveOnGround = mantling ? false : onGround;
+  if (effectiveOnGround) {
+    player.wasRunningOnGround = direction !== 0 || Math.abs(velocityX) > 1.0;
+  }
+
   updateHealth(player);
-  updateAnimation(player, direction, mantling ? false : onGround);
+  updateAnimation(player, direction, effectiveOnGround);
 }
 
 function updateAnimation(player, direction, onGround) {
@@ -132,10 +138,17 @@ function updateAnimation(player, direction, onGround) {
 
   if (player.hurtTimer > 0) {
     player.changeAni('hurt');
+    player.ani.play();
+  } else if (!onGround && player.wasRunningOnGround) {
+    player.changeAni('run');
+    player.ani.stop();
+    player.ani.frame = player.anis.run.length - 1;
   } else if (direction !== 0 && onGround) {
     player.changeAni('run');
+    player.ani.play();
   } else {
     player.changeAni('idle');
+    player.ani.play();
   }
 }
 
