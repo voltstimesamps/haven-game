@@ -368,8 +368,8 @@ export function updateLevel(game) {
     game.selectedItem === 'dynamite',
     game.chaser
   );
-  updatePogo(game.pogo, game.player, game.selectedItem === 'pogo');
   updatePlayer(game.player);
+  updatePogo(game.pogo, game.player, game.selectedItem === 'pogo');
 
   const caught = updateChaser(game.chaser, game.player);
 

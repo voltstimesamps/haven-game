@@ -1,5 +1,6 @@
 const maxPlayerSpeedX = 16;
 const maxPlayerFallSpeed = 15;
+let maxPlayerRiseSpeed = 16;
 
 const pendingChanges = new WeakMap();
 
@@ -14,9 +15,22 @@ function getPendingChange(player) {
   return pendingChanges.get(player);
 }
 
-export function addVelocityChange(player, changeX = 0, changeY = 0) {
-  const pending = getPendingChange(player);
+let explosionFramesLeft = 0;
 
+export function setMaxRiseSpeed(speed) {
+  maxPlayerRiseSpeed = speed;
+}
+
+export function addVelocityChange(player, changeX = 0, changeY = 0, purpose) {
+  if (purpose === "explosion") {
+    explosionFramesLeft = 30;
+  }
+
+  if (purpose === "jump" && explosionFramesLeft > 0) {
+    return;
+  }
+
+  const pending = getPendingChange(player);
   pending.x += changeX;
   pending.y += changeY;
 }
@@ -39,12 +53,17 @@ export function applyVelocityChange(player) {
     maxPlayerSpeedX
   );
 
-  player.vel.y = Math.min(
+  player.vel.y = constrain(
     projected.y,
+    -maxPlayerRiseSpeed,
     maxPlayerFallSpeed
   );
 
   pendingChanges.delete(player);
+
+  if (explosionFramesLeft > 0) {
+    explosionFramesLeft--;
+  }
 }
 
 export function setHorizontalVelocity(player, velocityX) {

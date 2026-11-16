@@ -111,7 +111,7 @@ export function updatePlayer(player) {
   }
 
   if ((kb.presses('space') || kb.presses('up')) && canJump) {
-    setVerticalVelocity(player, -JUMP_SPEED);
+    addVelocityChange(player, 0, -JUMP_SPEED, "jump");
     player.groundGrace = 0;
     playSound('jump');
   }

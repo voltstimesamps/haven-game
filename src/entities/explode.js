@@ -82,7 +82,7 @@ export function explode(player, blastX, blastY, config, ignore = []) {
   changeY += pushY * impulse;
 
   // propose vel change
-  addVelocityChange(player, changeX, changeY);
+  addVelocityChange(player, changeX, changeY, "explosion");
 
   return {
     hit: true,
