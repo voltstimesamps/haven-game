@@ -2,9 +2,15 @@ let restartHandler = null;
 let toastEl = null;
 let lastError = null;
 let errorCount = 0;
-let streak = 0;
+let streakStart = null;
+let lastErrorTime = 0;
+let streakCount = 0;
 let lastTick = 0;
 let halted = false;
+
+const STREAK_DURATION_MS = 2000; // must persist for 3 seconds
+const MAX_GAP_MS = 250;          // how long between errors
+const MIN_STREAK_ERRORS = 20;    // minimum of how many errors
 
 export function installCrashRecovery(onRestart) {
   restartHandler = onRestart;
@@ -31,12 +37,9 @@ export function guardFrame(fn) {
 
   try {
     fn();
-    streak = 0;
   } catch (err) {
-    if (++streak >= 30) haltGame(err);
-    else reportError(err);
+    reportError(err);
   }
-
 }
 
 export const isCrashed = () => halted;
@@ -44,9 +47,25 @@ export const drawCrashScreen = () => {};
 
 function reportError(raw) {
   if (halted) return;
+  const now = performance.now();
   const err = raw instanceof Error ? raw : new Error(String(raw));
   lastError = err;
   errorCount += 1;
+
+  // Start or continue an error streak if the gap since the last error is <= MAX_GAP_MS
+  if (streakStart === null || now - lastErrorTime > MAX_GAP_MS) {
+    streakStart = now;
+    streakCount = 1;
+  } else {
+    streakCount += 1;
+  }
+  lastErrorTime = now;
+
+  // Escalate to a major error if errors persist for 3 seconds
+  if (now - streakStart >= STREAK_DURATION_MS && streakCount >= MIN_STREAK_ERRORS) {
+    haltGame(err);
+    return;
+  }
 
   if (errorCount <= 3 || errorCount % 60 === 0) {
     console.error(`⚠ Minor Error (#${errorCount}):`, err);
@@ -92,7 +111,9 @@ function haltGame(raw) {
     const resume = () => {
       overlay.remove();
       halted = false;
-      streak = 0;
+      streakStart = null;
+      streakCount = 0;
+      lastErrorTime = 0;
       lastTick = performance.now();
       restartHandler?.();
     };
