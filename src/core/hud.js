@@ -1,7 +1,5 @@
-// Screen-space HUD helpers. Call these from a state's hud(), which runs
-// after sprites are drawn with the camera off: (0, 0) is the screen centre.
+// write text, icons, graphics that are locked to screen (don't exist in worldspace)
 
-// HealthRegen.png: 14 frames of a heart filling from empty (0) to full (13).
 const HEART_SHEET = 'assets/animations/HealthRegen.png';
 const HEART_FRAMES = 14;
 const HEART_SCALE = 1.25;
@@ -21,31 +19,29 @@ function getHeart() {
 
 export function hudText(message, x, y, size = 24) {
   push();
-  fill('white');
-  stroke('black');
-  strokeWeight(4);
+  fill(255);
+  stroke(0);
+  strokeWeight(2);
   textSize(size);
   textAlign(CENTER, CENTER);
   text(message, x, y);
   pop();
 }
 
-// Bottom-left item bar: the selected item is highlighted.
-export function drawItems(selected, pogo) {
+// item bar: the selected item is highlighted.
+export function drawItems(selected) {
   const left = -width / 2 + 24;
   const bottom = height / 2 - 28;
-  const charges = pogo?.charges ?? 0;
-
   const items = [
     { key: '1', name: 'DYNAMITE', id: 'dynamite', usable: true },
-    { key: '2', name: `POGO x${charges}`, id: 'pogo', usable: charges > 0 }
+    { key: '2', name: 'POGO', id: 'pogo', usable: true }
   ];
 
   push();
   textSize(18);
   textAlign(LEFT, CENTER);
-  strokeWeight(4);
-  stroke('#000000');
+  strokeWeight(2);
+  stroke(0);
 
   let x = left;
 
@@ -53,18 +49,18 @@ export function drawItems(selected, pogo) {
     const label = `[${item.key}] ${item.name}`;
 
     if (item.id === selected) {
-      fill('#ffd23c');
+      fill('#FFD700');
     } else if (item.usable) {
-      fill('#d8d0c0');
+      fill(255);
     } else {
-      fill('#6a6258');
+      fill(150);
     }
 
     text(label, x, bottom);
     x += textWidth(label) + 28;
   }
 
-  fill('#a89c88');
+  fill(200);
   textSize(14);
   text('Q to swap', x, bottom);
   pop();
@@ -94,7 +90,7 @@ export function drawHealth(player) {
   animation(ani, 0, 0);
   pop();
 
-  // Bar next to the heart
+  // bar next to heart (might want to keep this?? idk)
   const barX = left + 66;
   const barY = top + 22;
   const barW = 160;
@@ -102,7 +98,6 @@ export function drawHealth(player) {
 
   push();
   noStroke();
-  // Hex colours: numeric ranges differ between q5's WebGPU and 2D renderers.
   fill('#00000099');
   rect(barX - 3, barY - 3, barW + 6, barH + 6);
   fill('#3a0d0d');

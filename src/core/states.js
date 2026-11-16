@@ -4,7 +4,7 @@ import {
   updateLevel,
   drawLevel,
   drawLevelOverlay
-} from './level.js';
+} from '../levels/level.js';
 
 import { hudText, drawHealth, drawItems } from './hud.js';
 
@@ -15,24 +15,9 @@ import {
   resetClock
 } from './clock.js';
 
-import { playMusic } from './music.js';
-
-const game = {
-  activeLevel: null,
-  activeLevelId: null,
-  tileGroups: [],
-  backdrop: null,
-  player: null,
-  dynamite: null,
-  pogo: null,
-  chaser: null,
-  selectedItem: 'dynamite',
-  killY: Infinity,
-
-  chaseTrigger: null,
-  escapeDoor: null,
-  chaseStarted: false
-};
+import { playMusic, stopMusic } from './music.js';
+import { playSound } from './sound.js';
+import { game } from './game.js';
 
 const menu = {
   enter() {
@@ -41,7 +26,8 @@ const menu = {
   },
 
   update() {
-    if (kb.presses('enter')) {
+    if (kb.presses('enter') || (mouse.presses() && isPlayButtonHovered())) {
+      playSound('play');
       setState('play');
     }
   },
@@ -52,7 +38,9 @@ const menu = {
 
   hud() {
     drawLevelOverlay(game);
-    hudText('Press ENTER to start', 0, height / 2 - 60);
+    hudText('DYNAMITE DAN', 0, -height / 2 + 96, 48);
+    drawPlayButton();
+    hudText('ENTER or click PLAY', 0, height / 2 - 54, 18);
   },
 
   exit() {
@@ -64,9 +52,7 @@ const play = {
   enter() {
     loadLevel('campaign1/one', game);
     resetClock();
-
-    // Keeps chill going from the menu; swaps back if returning from a chase.
-    playMusic('chill');
+    stopMusic();
   },
 
   update() {
@@ -82,12 +68,12 @@ const play = {
     }
 
     if (result === 'dead') {
-      // Restart the level from the beginning.
+      // restart the level from the beginning.
       setState('play');
       return;
     }
 
-    if (kb.presses('escape')) {
+    if (game.entrance?.phase === 'done' && kb.presses('escape')) {
       setState('menu');
     }
   },
@@ -99,10 +85,10 @@ const play = {
   hud() {
     drawLevelOverlay(game);
     drawHealth(game.player);
-    drawItems(game.selectedItem, game.pogo);
+    drawItems(game.selectedItem);
 
     if (game.chaseStarted) {
-      hudText('CHASE ACTIVE', 0, -height / 2 + 40);
+      hudText('CHASER INCOMING', 0, -height / 2 + 40);
       hudText(formatClock(getClock()), 0, -height / 2 + 70);
     }
   },
@@ -111,6 +97,43 @@ const play = {
     unloadLevel(game);
   }
 };
+
+const PLAY_BUTTON = {
+  x: 0,
+  y: 200,
+  width: 220,
+  height: 64
+};
+
+function isPlayButtonHovered() {
+  const screenMouseX = mouse.x - camera.x;
+  const screenMouseY = mouse.y - camera.y;
+
+  return (
+    screenMouseX >= PLAY_BUTTON.x - PLAY_BUTTON.width / 2 &&
+    screenMouseX <= PLAY_BUTTON.x + PLAY_BUTTON.width / 2 &&
+    screenMouseY >= PLAY_BUTTON.y - PLAY_BUTTON.height / 2 &&
+    screenMouseY <= PLAY_BUTTON.y + PLAY_BUTTON.height / 2
+  );
+}
+
+function drawPlayButton() {
+  const hovered = isPlayButtonHovered();
+
+  push();
+  rectMode(CENTER);
+  fill(hovered ? 255 : 220, hovered ? 210 : 170, 60);
+  stroke(0);
+  strokeWeight(5);
+  rect(PLAY_BUTTON.x, PLAY_BUTTON.y, PLAY_BUTTON.width, PLAY_BUTTON.height, 10);
+  fill(255);
+  stroke(0);
+  strokeWeight(2);
+  textSize(30);
+  textAlign(CENTER, CENTER);
+  text('PLAY', PLAY_BUTTON.x, PLAY_BUTTON.y);
+  pop();
+}
 
 const states = {
   menu,
@@ -140,8 +163,6 @@ export function drawState() {
   currentState?.draw?.();
 }
 
-// Screen-space text, drawn after sprites so the level never covers it.
-// (0, 0) is the centre of the screen.
 export function drawStateHud() {
   currentState?.hud?.();
 }

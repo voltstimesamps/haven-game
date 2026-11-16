@@ -4,30 +4,28 @@ import {
 } from './velocity.js';
 
 export const standardDynamite = {
-  blastRadius: 150,
+  blastRadius: 200,
   force: 24, // tuned with gravity 30: a blast at your feet launches ~7 tiles
-  damage: 40,
+  damage: 60,
   upwardBias: 0.3
 };
 
-// How far apart the side rays are, as a fraction of the player's half-size.
+// how far apart the side rays are, as a fraction of the player's half-size.
 const RAY_SPREAD = 0.8;
 
 /**
- * Applies an explosion at (blastX, blastY) to the player.
+ * applies an explosion at (blastX, blastY) to the player.
  *
- * Doesn't touch velocity directly; it proposes a change through
- * addVelocityChange, which applyVelocityChange then clamps and applies.
+ * proposes velocity change via addvelocitychange, velocity.js handles applying
  *
  * @param player the player sprite
  * @param blastX blast centre x
  * @param blastY blast centre y
- * @param config e.g. standardDynamite
- * @param ignore groups/sprites the line-of-sight rays pass through
- *               (e.g. [dynamiteGroup, coinsGroup])
+ * @param config what kind of dynamite
+ * @param ignore groups/sprites the line-of-sight rays pass through, so they offer no blast protection
  */
 export function explode(player, blastX, blastY, config, ignore = []) {
-  // 1. Range check
+  // how far
   const offsetX = player.x - blastX;
   const offsetY = player.y - blastY;
   const distanceToBlast = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
@@ -36,8 +34,7 @@ export function explode(player, blastX, blastY, config, ignore = []) {
     return { hit: false };
   }
 
-  // 2. Geometric direction (unit vector, no bias). If the blast is right
-  //    on top of the player there's no direction, so push straight up.
+  // what direction from the player
   let lineX;
   let lineY;
 
@@ -49,27 +46,26 @@ export function explode(player, blastX, blastY, config, ignore = []) {
     lineY = offsetY / distanceToBlast;
   }
 
-  // 3. Line of sight
+  // check if player is exposed to blast via line of sight raycast
   const exposure = getExposure(player, blastX, blastY, lineX, lineY, ignore);
 
   if (exposure.fraction === 0) {
     return { hit: false, rays: exposure.rays };
   }
 
-  // 4. Strength: quadratic falloff, scaled by how much of the player is exposed
+  // strength: quadratic falloff, scaled by how much of the player is exposed
   const proximity = 1 - distanceToBlast / config.blastRadius;
   const falloffStrength = proximity * proximity;
   const blastStrength = falloffStrength * exposure.fraction;
 
-  // 5. Push direction (biased up, re-normalized). Negative y is up.
+  // where are we going to push the player
   let pushX = lineX;
   let pushY = lineY - config.upwardBias;
   const pushLength = Math.sqrt(pushX * pushX + pushY * pushY);
   pushX /= pushLength;
   pushY /= pushLength;
 
-  // 6. Cancel the part of the projected velocity that opposes the push,
-  //    so e.g. falling onto a blast doesn't swallow the launch.
+  // cancel velocity that doesn't align with push direction so breaking your fall with dynamite will still launch you
   const projected = getProjectedVelocity(player);
   const along = projected.x * pushX + projected.y * pushY;
 
@@ -81,12 +77,11 @@ export function explode(player, blastX, blastY, config, ignore = []) {
     changeY = -pushY * along;
   }
 
-  // 7. Impulse
   const impulse = config.force * blastStrength;
   changeX += pushX * impulse;
   changeY += pushY * impulse;
 
-  // 8. Propose it
+  // propose vel change
   addVelocityChange(player, changeX, changeY);
 
   return {
@@ -101,7 +96,7 @@ export function explode(player, blastX, blastY, config, ignore = []) {
   };
 }
 
-// Casts three rays from the blast to the player (centre and two sides,
+// casts three rays from the blast to the player (centre and two sides,
 // spread perpendicular to the blast line) and returns how many reach them.
 function getExposure(player, blastX, blastY, lineX, lineY, ignore) {
   // 90° rotation, both computed from the original line values
@@ -126,23 +121,21 @@ function getExposure(player, blastX, blastY, lineX, lineY, ignore) {
       hitCount++;
     }
 
-    // Kept for debug drawing
+    // could be useful for debug, keep around
     rays.push({ toX: target.x, toY: target.y, didHit });
   }
 
   return { fraction: hitCount / targets.length, rays };
 }
 
-// world.rayCast() stops at whichever hit Box2D reports first, which isn't
-// necessarily the closest. rayCastAll() collects every hit sorted by
-// distance, so take the nearest one that isn't ignored.
+// make sure we are finding the closest one (that isn't blast transparent)
 function firstRayHit(fromX, fromY, toX, toY, ignore) {
   const hits = world.rayCastAll(
     { x: fromX, y: fromY },
     { x: toX, y: toY }
   );
 
-  // ignoreRays: sensors like the door, trigger and chaser never block.
+  // if it is transparent to blast force ignore it
   return hits.find(
     (sprite) => !sprite.ignoreRays && !isIgnored(sprite, ignore)
   );

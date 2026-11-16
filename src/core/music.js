@@ -1,7 +1,4 @@
-// Background music. Only one track plays at a time, always looping.
-//
-// Uses loadAudio (streamed <audio> elements) rather than loadSound, since
-// music files are big and don't need to be fully decoded up front.
+// load and loop soundtrack
 
 const TRACKS = {
   chill: 'assets/music/chill.ogg',
@@ -25,8 +22,7 @@ function getTrack(name) {
   return loaded[name];
 }
 
-// Switches to the named track. Calling it with the track that's already
-// playing does nothing, so the music carries on between states seamlessly.
+// switches track if track is changing.
 export function playMusic(name) {
   if (!TRACKS[name]) {
     throw new Error(`Unknown music track: ${name}`);
@@ -47,13 +43,23 @@ export function playMusic(name) {
   startCurrent();
 }
 
+export function stopMusic() {
+  if (!current) {
+    return;
+  }
+
+  current.pause();
+  current.currentTime = 0;
+  current = null;
+}
+
 function startCurrent() {
   if (!current) {
     return;
   }
 
-  // Browsers block audio until the player has pressed a key or clicked.
-  // If that happens, try again on the first input.
+  // browsers block audio until the player has pressed a key or clicked.
+  // if that happens, try again on the first input.
   current.play().catch(() => {
     if (waitingForInput) {
       return;

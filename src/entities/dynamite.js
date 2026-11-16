@@ -1,8 +1,10 @@
 import { explode, standardDynamite } from './explode.js';
 import { damagePlayer } from './player.js';
 import { aimToward, mouseAngleFrom } from './aim.js';
+import { knockbackChaser } from './chaser.js';
+import { playSound } from '../core/sound.js';
 
-// DynamiteExplode.png: 15 frames of 96x96.
+// DynamiteExplode.png: spritesheet of 15 frames, 96x96 per frame
 //   0-7  lit stick, fuse burning down
 //   8-14 blast and smoke
 const SHEET = 'assets/animations/DynamiteExplode.png';
@@ -13,8 +15,7 @@ const BOOM_FRAMES = [8, 9, 10, 11, 12, 13, 14];
 const FRAME_SECONDS = 1 / 60;
 
 const FUSE_SECONDS = 0.75;
-// Throw speed scales with how far away you click, so clicking at your feet
-// drops the stick there and clicking far away lobs it. Meters/second.
+// scale throw speed with mouse distance from player
 const MIN_THROW_SPEED = 2;
 const MAX_THROW_SPEED = 12;
 const THROW_SPEED_PER_PIXEL = 1 / 12;
@@ -23,15 +24,13 @@ const THROW_COOLDOWN = 0.3;
 const HOLD_DISTANCE = 26; // how far from Dan's centre the held stick floats
 
 const BOOM_FRAME_DELAY = 4; // frames per explosion animation frame
-const BOOM_SCALE = 3; // explosion art is small next to a 150px blast radius
+const BOOM_SCALE = 3; // range of affect as a multple of sprite size
 
-// The stick art points up-right (-45°); add this to aim it along an angle.
+// account for angle of stick in the art
 const ART_ANGLE_OFFSET = 45;
 
 let art = null;
 
-// Animations are made once and cloned. Visuals (not Sprites) hold them so
-// they don't get attached to allSprites.
 function getArt() {
   if (!art) {
     const held = new Visuals();
@@ -72,8 +71,13 @@ export function deleteDynamite(dynamite) {
 }
 
 // `active` = dynamite is the selected item (throwing and the held stick).
-// Sticks already thrown keep ticking either way.
-export function updateDynamite(dynamite, player, active = true) {
+// sticks already thrown keep ticking either way.
+export function updateDynamite(
+  dynamite,
+  player,
+  active = true,
+  chaser = null
+) {
   if (!dynamite || !player) {
     return;
   }
@@ -105,7 +109,7 @@ export function updateDynamite(dynamite, player, active = true) {
     );
 
     if (stick.fuse <= 0) {
-      detonate(dynamite, stick, player);
+      detonate(dynamite, stick, player, chaser);
     }
   }
 
@@ -123,7 +127,7 @@ export function updateDynamite(dynamite, player, active = true) {
 }
 
 function throwStick(dynamite, player) {
-  // Aim straight at the mouse, not the smoothed held angle.
+  // aim straight at the mouse, not the smoothed held angle.
   const angle = mouseAngleFrom(player);
   const dirX = cos(angle);
   const dirY = sin(angle);
@@ -134,8 +138,7 @@ function throwStick(dynamite, player) {
     MAX_THROW_SPEED
   );
 
-  // Spawn just outside Dan's centre rather than at the held position, so a
-  // stick thrown while hugging a wall doesn't start inside the wall.
+  // spawn just outside Dan's centre rather than at the held position to avoid spawning sticks in walls
   const stick = new dynamite.group.Sprite(
     player.x + dirX * 8,
     player.y + dirY * 8,
@@ -157,13 +160,15 @@ function throwStick(dynamite, player) {
   stick.passes(dynamite.group);
 
   dynamite.cooldown = THROW_COOLDOWN;
+  playSound('dynamiteThrow');
 }
 
-function detonate(dynamite, stick, player) {
+function detonate(dynamite, stick, player, chaser) {
   const x = stick.x;
   const y = stick.y;
 
   stick.delete();
+  playSound('explosion');
 
   const boom = art.boom.clone();
   boom.playing = false;
@@ -174,16 +179,17 @@ function detonate(dynamite, stick, player) {
     return;
   }
 
-  // Push and damage both scale with distance (and how exposed Dan is).
+  // push and damage both scale with distance (and how exposed Dan is).
   const result = explode(player, x, y, standardDynamite, [dynamite.group]);
 
   if (result.hit) {
     damagePlayer(player, standardDynamite.damage * result.blastStrength);
   }
+
+  knockbackChaser(chaser, x, y);
 }
 
-// Drawn after sprites (from the HUD pass) so the held stick and the
-// explosions appear in front of Dan and the tiles.
+// make sure dynamite shows over map tiles and dan
 export function drawDynamite(dynamite, player, active = true) {
   if (!dynamite) {
     return;
