@@ -259,8 +259,8 @@ function updateEntrance(game) {
       player.changeAni('idle');
     }
 
-    emitDoorParticles(entrance, door);
     closeDoor(game, door);
+    emitDoorParticles(entrance, door);
     playSound('doorClose');
     playMusic('chill');
     shakeCamera(0.7, 8);
@@ -288,6 +288,8 @@ function emitDoorParticles(entrance, door) {
     particle.vel.x = random(-3, 3);
     particle.vel.y = random(-5, -1);
     entrance.particles.push(particle);
+    door.passes(particle);
+    door.solid?.passes(particle);
   }
 }
 
@@ -587,6 +589,19 @@ function createEscapeDoor(settings) {
   return door;
 }
 
+function openDoor(door) {
+  if (!door) {
+    return;
+  }
+
+  door.solid?.delete();
+  door.solid = null;
+  door.isClosed = false;
+  door.color = 'green';
+  door.animation = 'open';
+  door.openProgress = 1; // Or set to 0 if you want to animate it sliding open over time
+}
+
 function closeDoor(game, door) {
   if (door.isClosed) {
     return;
@@ -610,7 +625,7 @@ function startChase(game) {
   }
 
   if (game.escapeDoor) {
-    game.escapeDoor.color = 'green';
+    openDoor(game.escapeDoor);
   }
 
   const spawn = game.activeLevel.objects.chaser;
