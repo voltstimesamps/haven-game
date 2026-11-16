@@ -164,9 +164,12 @@ function tryMantle(player, direction, onGround) {
 
   const frontX = player.x + direction * (player.w / 2 + MANTLE_FRONT_OFFSET);
   const feetY = player.y + player.h / 2;
+
+  const bottomRayY = feetY - 3;
   const lowY = feetY - MANTLE_MIN_HEIGHT;
   const highY = feetY - MANTLE_MAX_HEIGHT;
-  const wallAtFeet = rayHitsTile(frontX, feetY, frontX, lowY);
+
+  const wallAtFeet = rayHitsTile(frontX, bottomRayY, frontX, lowY);
   const headroom = !rayHitsTile(
     frontX,
     player.y - player.h / 2 + 2,
