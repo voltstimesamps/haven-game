@@ -17,7 +17,7 @@ import {
   shakeCamera,
   snapCamera
 } from '../core/camera.js';
-import { playMusic } from '../core/music.js';
+import { playMusic, fadeOutMusic } from '../core/music.js';
 import { playSound } from '../core/sound.js';
 import { debugEnabled } from '../core/debug.js';
 import { levels, toWorldPlacement } from './levels.js';
@@ -66,6 +66,8 @@ export function loadLevel(levelId, game) {
   if (level.id === 'campaign1/one') {
     beginEntrance(game);
   }
+
+  game.irisOpenProgress = 1;
 }
 
 export function drawLevel(game) {
@@ -105,6 +107,8 @@ export function drawLevelOverlay(game) {
   drawPogo(game.pogo, game.player, game.selectedItem === 'pogo');
   drawChaser(game.chaser, game.player);
   camera.off();
+
+  drawCutsceneOverlay(game);
 }
 
 function drawSigns(signs = [], level) {
@@ -203,7 +207,7 @@ function beginEntrance(game) {
 
   player.x = door.x - door.w - 8;
   player.inputEnabled = false;
-  player.entranceWalking = true;
+  player.autoDirection = 1; // walk right automatically
   game.entrance = {
     phase: 'walking',
     elapsed: 0,
@@ -228,15 +232,11 @@ function updateEntrance(game) {
   const door = game.escapeDoor;
 
   if (entrance.phase === 'walking') {
-    player.vel.x = 2.2;
-    player.vel.y = 0;
-
-    if (player.idleReady) {
-      player.changeAni('run');
-    }
+    player.autoDirection = 1;
+    updatePlayer(player);
 
     if (player.x >= door.x + door.w * 2) {
-      player.vel.x = 0;
+      player.autoDirection = 0; // stand still while door closes
       entrance.phase = 'closing';
       entrance.elapsed = 0;
     }
@@ -244,20 +244,18 @@ function updateEntrance(game) {
     return true;
   }
 
+  player.autoDirection = 0;
+  updatePlayer(player);
+
   entrance.elapsed += 1 / 60;
   const progress = constrain(entrance.elapsed / 0.45, 0, 1);
   door.openProgress = 1 - progress;
   door.animation = 'close';
-  player.vel.x = 0;
 
   if (progress >= 1) {
     entrance.phase = 'done';
-    player.entranceWalking = false;
+    player.autoDirection = null; // hand control back to keyboard
     player.inputEnabled = true;
-
-    if (player.idleReady) {
-      player.changeAni('idle');
-    }
 
     closeDoor(game, door);
     emitDoorParticles(entrance, door);
@@ -267,6 +265,160 @@ function updateEntrance(game) {
   }
 
   return true;
+}
+
+function beginExit(game) {
+  if (game.exit) {
+    return;
+  }
+
+  const player = game.player;
+  const door = game.escapeDoor;
+  const tileSize = game.activeLevel.tiles.size;
+  const targetX = door.x - tileSize * 3;
+  const dir = targetX >= player.x ? 1 : -1;
+
+  openDoor(door);
+
+  player.inputEnabled = false;
+  player.autoDirection = dir;
+
+  deleteChaser(game.chaser);
+  game.chaser = null;
+
+  fadeOutMusic(1.2);
+
+  game.exit = {
+    phase: 'walking',
+    dir,
+    targetX,
+    elapsed: 0,
+    irisProgress: 0
+  };
+}
+
+function updateExit(game) {
+  const exit = game.exit;
+
+  if (!exit) {
+    return null;
+  }
+
+  const player = game.player;
+
+  if (exit.phase === 'walking') {
+    exit.elapsed += 1 / 60;
+    player.autoDirection = exit.dir;
+    updatePlayer(player);
+
+    const reachedTarget = exit.dir === 1
+      ? player.x >= exit.targetX
+      : player.x <= exit.targetX;
+
+    if (reachedTarget || exit.elapsed >= 1.5) {
+      player.autoDirection = 0;
+      player.vel.x = 0;
+      player.visible = false;
+      exit.phase = 'iris';
+      exit.elapsed = 0;
+    }
+
+    return 'continue';
+  }
+
+  if (exit.phase === 'iris') {
+    exit.elapsed += 1 / 60;
+    exit.irisProgress = constrain(exit.elapsed / 0.75, 0, 1);
+
+    if (exit.irisProgress >= 1) {
+      exit.phase = 'done';
+      player.autoDirection = null;
+      return 'complete';
+    }
+  }
+
+  return 'continue';
+}
+
+function drawCutsceneOverlay(game) {
+  if (!game.activeLevel || game.activeLevelId?.startsWith('menu/')) {
+    game.exit = null;
+    game.irisOpenProgress = 0;
+    game.letterboxProgress = 0;
+    return;
+  }
+
+  const entrance = game.entrance;
+  const exit = game.exit;
+
+  if (game.irisOpenProgress > 0) {
+    game.irisOpenProgress = max(0, game.irisOpenProgress - (1 / 60) / 0.6);
+  }
+
+  const hasActiveIris =
+    (exit && (exit.phase === 'iris' || exit.phase === 'done')) ||
+    game.irisOpenProgress > 0;
+
+  if (!entrance && !exit && !(game.letterboxProgress > 0) && !hasActiveIris) {
+    return;
+  }
+
+  const cutsceneActive =
+    (entrance && entrance.phase !== 'done') ||
+    Boolean(exit && exit.phase !== 'done');
+
+  const currentBar = game.letterboxProgress ?? 0;
+  game.letterboxProgress = cutsceneActive
+    ? min(1, currentBar + (1 / 60) / 0.25)
+    : max(0, currentBar - (1 / 60) / 0.25);
+
+  const viewW = width / camera.zoom;
+  const viewH = height / camera.zoom;
+  const left = camera.x - viewW / 2;
+  const top = camera.y - viewH / 2;
+
+  push();
+  camera.on();
+  rectMode(CORNER);
+
+  // iris wipe
+  const isExiting = exit && (exit.phase === 'iris' || exit.phase === 'done');
+  const isOpening = !isExiting && game.irisOpenProgress > 0;
+
+  if (isExiting || isOpening) {
+    const progress = isExiting ? (exit.irisProgress ?? 0) : game.irisOpenProgress;
+    const target = isExiting
+      ? (game.escapeDoor ?? game.player)
+      : (game.player ?? game.escapeDoor);
+
+    if (target) {
+      const maxRadius = dist(
+        target.x,
+        target.y,
+        target.x < camera.x ? left + viewW : left,
+        target.y < camera.y ? top + viewH : top
+      );
+
+      const holeRadius = max(0, maxRadius * (1 - progress));
+
+      noFill();
+      stroke(0);
+      strokeWeight(maxRadius * 2);
+      circle(target.x, target.y, holeRadius * 2 + maxRadius * 2);
+    }
+  }
+
+  // letterbox bars
+  if (game.letterboxProgress > 0) {
+    const barHeight = viewH * 0.12 * game.letterboxProgress;
+    noStroke();
+    fill(0);
+    rect(left, top, viewW, barHeight);
+    rect(left, top + viewH - barHeight, viewW, barHeight);
+  }
+
+  camera.off();
+  pop();
 }
 
 function emitDoorParticles(entrance, door) {
@@ -344,6 +496,11 @@ export function unloadLevel(game) {
   for (const group of game.tileGroups) {
     group.deleteAll();
   }
+  
+  deleteEntrance(game.entrance);
+  game.entrance = null;
+  game.exit = null;
+  game.letterboxProgress = 0;
 
   game.tileGroups = [];
   game.backdrop = null;
@@ -359,6 +516,11 @@ export function updateLevel(game) {
 
   if (updateEntrance(game)) {
     return 'continue';
+  }
+
+  const exitStatus = updateExit(game)
+  if (exitStatus) {
+    return exitStatus;
   }
 
   updateItemSelection(game);
@@ -391,11 +553,13 @@ export function updateLevel(game) {
   }
 
   if (
-    game.escapeDoor &&
     game.chaseStarted &&
-    game.player.overlaps(game.escapeDoor)
+    game.escapeDoor &&
+    !game.escapeDoor.isClosed &&
+    game.player.overlapping(game.escapeDoor)
   ) {
-    return 'complete';
+    beginExit(game);
+    return 'continue';
   }
 
   return 'continue';

@@ -10,6 +10,14 @@ const VOLUME = 0.5;
 const loaded = {};
 let current = null;
 let waitingForInput = false;
+let fadeFrameId = null;
+
+function cancelFade() {
+  if (fadeFrameId !== null) {
+    cancelAnimationFrame(fadeFrameId);
+    fadeFrameId = null;
+  }
+}
 
 function getTrack(name) {
   if (!loaded[name]) {
@@ -28,9 +36,15 @@ export function playMusic(name) {
     throw new Error(`Unknown music track: ${name}`);
   }
 
+  cancelFade();
+
   const next = getTrack(name);
+  next.volume = VOLUME;
 
   if (current === next) {
+    if (current.paused) {
+      startCurrent();
+    }
     return;
   }
 
@@ -44,13 +58,45 @@ export function playMusic(name) {
 }
 
 export function stopMusic() {
+  cancelFade();
+
   if (!current) {
     return;
   }
 
   current.pause();
   current.currentTime = 0;
+  current.volume = VOLUME;
   current = null;
+}
+
+export function fadeOutMusic(duration = 1.0) {
+  cancelFade();
+
+  if (!current) {
+    return;
+  }
+
+  const target = current;
+  const startVolume = target.volume;
+  const startTime = performance.now();
+  const durationMs = duration * 1000;
+
+  function step(now) {
+    const progress = Math.min(1, (now - startTime) / durationMs);
+    target.volume = Math.max(0, startVolume * (1 - progress));
+
+    if (progress < 1 && current === target) {
+      fadeFrameId = requestAnimationFrame(step);
+    } else {
+      fadeFrameId = null;
+      if (current === target) {
+        stopMusic();
+      }
+    }
+  }
+
+  fadeFrameId = requestAnimationFrame(step);
 }
 
 function startCurrent() {

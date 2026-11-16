@@ -54,6 +54,7 @@ export function createPlayer(playerSettings) {
 
   sprite.idleReady = false;
   sprite.inputEnabled = playerSettings.inputEnabled;
+  sprite.autoDirection = null; // null = normal player control; -1, 0, or 1 = cutscene override
   sprite.rotationLock = true;
 
   // note, no physics friction because it allows dan to stick to walls. ground friction handled in updatePlayer.
@@ -72,7 +73,13 @@ export function createPlayer(playerSettings) {
 }
 
 export function updatePlayer(player) {
-  if (!player || !player.inputEnabled) {
+  if (!player) {
+    return;
+  }
+
+  const isAutoControlled = player.autoDirection !== null;
+
+  if (!player.inputEnabled && !isAutoControlled) {
     return;
   }
 
@@ -81,8 +88,12 @@ export function updatePlayer(player) {
     ? GROUND_GRACE_SECONDS
     : Math.max(0, player.groundGrace - FRAME_SECONDS);
   const canJump = onGround || player.groundGrace > 0;
-  const direction =
-    (kb.pressing('right') ? 1 : 0) - (kb.pressing('left') ? 1 : 0);
+
+  // use cutscene direction if active, otherwise read keyboard
+  const direction = isAutoControlled
+    ? player.autoDirection
+    : (kb.pressing('right') ? 1 : 0) - (kb.pressing('left') ? 1 : 0);
+
   player.mantleCooldown = Math.max(
     0,
     player.mantleCooldown - FRAME_SECONDS
@@ -111,8 +122,8 @@ export function updatePlayer(player) {
     addVelocityChange(player, -velocityX * damping, 0);
   }
 
-  if ((kb.presses('space') || kb.presses('up')) && canJump) {
-    addVelocityChange(player, 0, -JUMP_SPEED, "jump");
+  if (!isAutoControlled && (kb.presses('space') || kb.presses('up')) && canJump) {
+    addVelocityChange(player, 0, -JUMP_SPEED, 'jump');
     player.groundGrace = 0;
     playSound('jump');
   }
@@ -147,8 +158,11 @@ function updateAnimation(player, direction, onGround) {
     player.changeAni('run');
     player.ani.play();
   } else {
-    player.changeAni('idle');
-    player.ani.play();
+
+    if (player.idleReady) {
+      player.changeAni('idle');
+      player.ani.play();
+    }
   }
 }
 
