@@ -138,7 +138,6 @@ export const levels = {
     },
 
     signs: [
-      { tile: { col: 3, row: 14.875 }, text: 'EXIT' },
       { tile: { col: 9.375, row: 13.75 }, text: 'WASD for movement' },
       { tile: { col: 18.75, row: 13.75 }, text: 'hop up' },
       { tile: { col: 23.75, row: 9.375 }, text: 'Too tall? Click to throw dynamite' },
