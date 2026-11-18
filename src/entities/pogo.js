@@ -14,6 +14,7 @@ const STICK_START = 16;
 const BOUNCE_SPEED = 10.5; // minimum speed of a bounce in meters/s, jump is 9ish
 const BOUNCE_RESTITUTION = 1.25; // what percent of velocity can pogo reflect
 const COOLDOWN_SECONDS = 0.15; // stops one landing counting as two bounces
+const EQUIP_COOLDOWN_SECONDS = 0.15; // brief lockout when switching to the pogo stick
 const FRAME_SECONDS = 1 / 60;
 
 export function createPogo() {
@@ -43,14 +44,18 @@ export function updatePogo(pogo, player, active) {
     return;
   }
 
-  aimToward(pogo, player);
+  updateHeldItem(pogo, player, active);
 
   pogo.cooldown = Math.max(0, pogo.cooldown - FRAME_SECONDS);
 
   if (!active || !player.inputEnabled) {
     pogo.touching = false;
+    pogo.wasActive = false;
     return;
   }
+
+  const justEquipped = !pogo.wasActive;
+  pogo.wasActive = true;
 
   const angle = getHeldRenderAngle(pogo);
   const dirX = cos(angle);
@@ -58,6 +63,12 @@ export function updatePogo(pogo, player, active) {
 
   const wasTouching = pogo.touching;
   pogo.touching = tipTouchesTile(player, dirX, dirY);
+
+  // prevent a free bounce on the equip frame and apply a brief equip lockout (counteracts tig3r's tech)
+  if (justEquipped) {
+    pogo.cooldown = Math.max(pogo.cooldown, EQUIP_COOLDOWN_SECONDS);
+    return;
+  }
 
   // bounce only on first contact, not every frame the tip stays planted.
   if (pogo.touching && !wasTouching && pogo.cooldown <= 0) {
