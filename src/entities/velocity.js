@@ -15,21 +15,11 @@ function getPendingChange(player) {
   return pendingChanges.get(player);
 }
 
-let explosionFramesLeft = 0;
-
 export function setMaxRiseSpeed(speed) {
   maxPlayerRiseSpeed = speed;
 }
 
 export function addVelocityChange(player, changeX = 0, changeY = 0, purpose) {
-  if (purpose === "explosion") {
-    explosionFramesLeft = 30;
-  }
-
-  if (purpose === "jump" && explosionFramesLeft > 0) {
-    return;
-  }
-
   const pending = getPendingChange(player);
   pending.x += changeX;
   pending.y += changeY;
@@ -60,10 +50,6 @@ export function applyVelocityChange(player) {
   );
 
   pendingChanges.delete(player);
-
-  if (explosionFramesLeft > 0) {
-    explosionFramesLeft--;
-  }
 }
 
 export function setHorizontalVelocity(player, velocityX) {
