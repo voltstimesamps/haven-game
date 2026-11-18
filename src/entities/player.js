@@ -26,7 +26,7 @@ const GROUND_CHECK_DOWN = 10;
 
 // health
 const MAX_HEALTH = 100;
-const REGEN_PER_SECOND = MAX_HEALTH / 5; // full health in 5 seconds
+const REGEN_PER_SECOND = MAX_HEALTH / 15; // full health in 15 seconds
 const HURT_SECONDS = 0.5;
 const FRAME_SECONDS = 1 / 60;
 
