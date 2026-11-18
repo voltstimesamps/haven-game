@@ -4,7 +4,7 @@ import {
   updateHeldItem,
   getHeldRenderAngle,
   destroyHeldItem
-} from './aim.js';
+} from './heldItem.js';
 
 // launches dan in opposite direction it is facing when it touches the ground
 

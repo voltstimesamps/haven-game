@@ -6,7 +6,7 @@ import {
   getHeldRenderAngle,
   destroyHeldItem,
   mouseAngleFrom
-} from './aim.js';
+} from './heldItem.js';
 import { knockbackChaser } from './chaser.js';
 import { playSound } from '../core/sound.js';
 
