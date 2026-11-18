@@ -1,6 +1,12 @@
 import { explode, standardDynamite } from './explode.js';
 import { damagePlayer } from './player.js';
-import { aimToward, mouseAngleFrom } from './aim.js';
+import {
+  initHeldItem,
+  updateHeldItem,
+  getHeldRenderAngle,
+  destroyHeldItem,
+  mouseAngleFrom
+} from './aim.js';
 import { knockbackChaser } from './chaser.js';
 import { playSound } from '../core/sound.js';
 
@@ -22,9 +28,11 @@ const THROW_SPEED_PER_PIXEL = 1 / 12;
 const THROW_COOLDOWN = 0.3;
 
 const HOLD_DISTANCE = 26; // how far from Dan's centre the held stick floats
+const STICK_LENGTH = 16;
+const STICK_THICKNESS = 4;
 
 const BOOM_FRAME_DELAY = 4; // frames per explosion animation frame
-const BOOM_SCALE = 3; // range of affect as a multple of sprite size
+const BOOM_SCALE = 3; // range of affect as a multiple of sprite size
 
 // account for angle of stick in the art
 const ART_ANGLE_OFFSET = 45;
@@ -54,19 +62,36 @@ export function createDynamite() {
   group.addAni('fuse', SHEET, FUSE_FRAMES, FRAME_SIZE);
   group.isDynamite = true;
 
-  return {
-    group,
-    explosions: [],
-    aimAngle: 0,
-    heldX: 0,
-    heldY: 0,
-    cooldown: 0
+  group.draw = function () {
+    push();
+    rotate(ART_ANGLE_OFFSET);
+    animation(this.ani, 0, 0);
+    pop();
   };
+
+  return initHeldItem(
+    {
+      group,
+      explosions: [],
+      heldX: 0,
+      heldY: 0,
+      cooldown: 0
+    },
+    {
+      initialAngle: 0,
+      hitbox: {
+        length: HOLD_DISTANCE + STICK_LENGTH * 0.5,
+        thickness: STICK_THICKNESS,
+        startOffset: HOLD_DISTANCE - STICK_LENGTH * 0.5
+      }
+    }
+  );
 }
 
 export function deleteDynamite(dynamite) {
   if (dynamite) {
     dynamite.group.deleteAll();
+    destroyHeldItem(dynamite);
   }
 }
 
@@ -82,13 +107,14 @@ export function updateDynamite(
     return;
   }
 
-  aimToward(dynamite, player);
-  dynamite.heldX = player.x + cos(dynamite.aimAngle) * HOLD_DISTANCE;
-  dynamite.heldY = player.y + sin(dynamite.aimAngle) * HOLD_DISTANCE;
-
   if (dynamite.cooldown > 0) {
     dynamite.cooldown -= FRAME_SECONDS;
   }
+
+  updateHeldItem(dynamite, player, active);
+
+  dynamite.heldX = dynamite.worldX;
+  dynamite.heldY = dynamite.worldY;
 
   if (
     active &&
@@ -138,26 +164,36 @@ function throwStick(dynamite, player) {
     MAX_THROW_SPEED
   );
 
-  // spawn just outside Dan's centre rather than at the held position to avoid spawning sticks in walls
+  const safeDist = Math.min(12, Math.max(4, (dynamite.clampedLength ?? 12) - 8));
+  const spawnX = player.x + dirX * safeDist;
+  const spawnY = player.y + dirY * safeDist;
+
   const stick = new dynamite.group.Sprite(
-    player.x + dirX * 8,
-    player.y + dirY * 8,
-    12
+    spawnX,
+    spawnY,
+    STICK_LENGTH,
+    STICK_THICKNESS
   );
 
+  stick.collider = 'dynamic';
   stick.isDynamite = true;
   stick.fuse = FUSE_SECONDS;
   stick.ani.playing = false;
   stick.ani.frame = 0;
   stick.bounciness = 0.25;
   stick.friction = 0.8;
-  stick.rotation = angle + ART_ANGLE_OFFSET;
+  stick.angularDrag = 2.5;
+  stick.rotation = angle;
 
   stick.vel.x = dirX * speed + player.vel.x * 0.5;
   stick.vel.y = dirY * speed + player.vel.y * 0.5;
 
   stick.passes(player);
   stick.passes(dynamite.group);
+
+  if (dynamite.hitbox) {
+    stick.passes(dynamite.hitbox);
+  }
 
   dynamite.cooldown = THROW_COOLDOWN;
   playSound('dynamiteThrow');
@@ -179,8 +215,13 @@ function detonate(dynamite, stick, player, chaser) {
     return;
   }
 
-  // push and damage both scale with distance (and how exposed Dan is).
-  const result = explode(player, x, y, standardDynamite, [dynamite.group]);
+  // ignore item hitboxes so it doesn't stop explosion effect rays
+  const ignore = [dynamite.group];
+  if (dynamite.hitbox) {
+    ignore.push(dynamite.hitbox);
+  }
+
+  const result = explode(player, x, y, standardDynamite, ignore);
 
   if (result.hit) {
     damagePlayer(player, standardDynamite.damage * result.blastStrength);
@@ -213,9 +254,11 @@ export function drawDynamite(dynamite, player, active = true) {
     dynamite.cooldown <= 0 &&
     art.held.length
   ) {
+    const renderAngle = getHeldRenderAngle(dynamite);
+
     push();
     translate(dynamite.heldX, dynamite.heldY);
-    rotate(dynamite.aimAngle + ART_ANGLE_OFFSET);
+    rotate(renderAngle + ART_ANGLE_OFFSET);
     animation(art.held, 0, 0);
     pop();
   }
