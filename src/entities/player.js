@@ -230,7 +230,7 @@ export function damagePlayer(player, amount) {
 }
 
 export function isDead(player) {
-  return player.health <= 0;
+  return player.health <= 1;
 }
 
 // use short raycast for ground detection as vel.y is also 0 at top of jump
