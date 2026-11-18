@@ -4,7 +4,8 @@ import { aimToward } from './aim.js';
 // launches dan in opposite direction it is facing when it touches the ground
 
 const LENGTH = 46; // Dan's center to the bounce collider, px (feet are at 24)
-const BOUNCE_SPEED = 10.5; // meters/second along the stick (a jump is 9.5)
+const BOUNCE_SPEED = 10.5; // minimum speed of a bounce in meters/s, jump is 9ish
+const BOUNCE_RESTITUTION = 1.25; // what percent of velocity can pogo reflect
 const COOLDOWN_SECONDS = 0.15; // stops one landing counting as two bounces
 const FRAME_SECONDS = 1 / 60;
 
@@ -52,12 +53,14 @@ function tipTouchesTile(player, dirX, dirY) {
 }
 
 function bounce(pogo, player, pushX, pushY) {
-  // make sure that push doesn't get absorbed by falling speed while allowing for momentum building in x direction
   const projected = getProjectedVelocity(player);
+  
   const along = projected.x * pushX + projected.y * pushY;
 
   if (along < BOUNCE_SPEED) {
-    const change = BOUNCE_SPEED - along;
+    const reflectedSpeed = Math.max(BOUNCE_SPEED, -along * BOUNCE_RESTITUTION);
+    
+    const change = reflectedSpeed - along;
     addVelocityChange(player, pushX * change, pushY * change);
   }
 
