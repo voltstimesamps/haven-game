@@ -16,11 +16,11 @@ import {
   followChaseCamera,
   shakeCamera,
   snapCamera
-} from '../core/camera.js';
-import { playMusic, fadeOutMusic } from '../core/music.js';
-import { playSound } from '../core/sound.js';
-import { debugEnabled } from '../core/debug.js';
-import { levels, toWorldPlacement } from './levels.js';
+} from './camera.js';
+import { playMusic, fadeOutMusic } from './music.js';
+import { playSound } from './sound.js';
+import { debugEnabled } from './debug.js';
+import { levels, toWorldPlacement } from '../levels/levels.js';
 
 const doorImages = new Map();
 
