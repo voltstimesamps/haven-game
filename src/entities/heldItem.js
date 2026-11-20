@@ -3,8 +3,8 @@
 const AIM_SMOOTHING = 0.35;
 const SURFACE_PADDING = 6; // extra buffer to prevent 1-frame movement clipping
 
-export function mouseAngleFrom(player) {
-  return atan2(mouse.y - player.y, mouse.x - player.x);
+export function mouseAngleFrom() {
+  return atan2(mouse.y - camera.y, mouse.x - camera.x);
 }
 
 export function initHeldItem(
@@ -74,8 +74,8 @@ export function updateHeldItem(item, player, active = true) {
   const perpY = dirX;
   const halfThick = thickness * 0.5;
 
-  const originX = player.x + (player.vel?.x ?? 0);
-  const originY = player.y + (player.vel?.y ?? 0);
+const originX = player.x + (player.vel?.x ?? 0);
+const originY = player.y + (player.vel?.y ?? 0);
 
   const checkLength = length + SURFACE_PADDING;
   const offsets = [0, -halfThick, halfThick];

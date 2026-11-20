@@ -154,7 +154,7 @@ export function updateDynamite(
 
 function throwStick(dynamite, player) {
   // aim straight at the mouse, not the smoothed held angle.
-  const angle = mouseAngleFrom(player);
+  const angle = mouseAngleFrom();
   const dirX = cos(angle);
   const dirY = sin(angle);
   const mouseDistance = dist(player.x, player.y, mouse.x, mouse.y);
