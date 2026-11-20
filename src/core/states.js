@@ -4,7 +4,7 @@ import {
   updateLevel,
   drawLevel,
   drawLevelOverlay
-} from './level.js';
+} from '../level/level.js';
 
 import { hudText, drawHealth, drawItems } from './hud.js';
 

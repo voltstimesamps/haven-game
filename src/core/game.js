@@ -12,6 +12,10 @@ export const game = {
 
   chaseTrigger: null,
   escapeDoor: null,
+  chaseStarted: false,
+
   entrance: null,
-  chaseStarted: false
+  exit: null,
+  irisOpenProgress: 0,
+  letterboxProgress: 0
 };
