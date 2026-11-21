@@ -1,0 +1,25 @@
+name: Deploy Game
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'assets/**'
+      - 'src/**'
+      - 'favicon.png'
+      - 'index.html'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup butler
+        uses: remarkablegames/setup-butler@v3
+
+      - name: Upload to itch.io
+        run: butler push --if-changed ./ welsey/dynamite-dan:html
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
