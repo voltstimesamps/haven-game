@@ -26,7 +26,7 @@ const menu = {
   },
 
   update() {
-    if (kb.presses('enter') || (mouse.presses() && isPlayButtonHovered())) {
+    if (kb.presses('enter') || (mouse.presses('left'))) {
       playSound('play');
       setState('play');
     }
