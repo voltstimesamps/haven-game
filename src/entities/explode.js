@@ -4,9 +4,9 @@ import {
 } from './velocity.js';
 
 export const standardDynamite = {
-  blastRadius: 200,
+  blastRadius: 250,
   force: 24, // tuned with gravity 30: a blast at your feet launches ~7 tiles
-  damage: 60,
+  damage: 40,
   upwardBias: 0.3
 };
 
