@@ -64,27 +64,49 @@ export function drawItems(selected) {
   pop();
 }
 
+let pulses = [];
+let lastSpawn = 0;
+
 export function drawHealth(player) {
-  if (!player) {
-    return;
-  }
+  if (!player) return;
 
-  const fraction = player.health / player.maxHealth;
-  const left = -width / 2 + 24;
-  const top = -height / 2 + 24;
-
+  const hp = constrain(player.health / player.maxHealth, 0, 1);
   const ani = getHeart();
+  if (ani.length < HEART_FRAMES) return;
 
-  if (ani.length < HEART_FRAMES) {
-    return; // sheet still loading
+  ani.frame = Math.round(hp * (HEART_FRAMES - 1));
+
+  const urgency = hp > 0 && hp <= 0.75 ? constrain((0.75 - hp) / 0.5, 0, 1) : 0;
+  const duration = lerp(1400, 600, urgency);
+  const now = millis();
+
+  if (urgency > 0 && now - lastSpawn >= duration * 0.5) {
+    pulses.push({ born: now, duration, urgency });
+    lastSpawn = now;
   }
-
-  ani.frame = Math.round(fraction * (HEART_FRAMES - 1));
 
   push();
+  colorMode(RGB, 255);
   imageMode(CENTER);
-  translate(left + 30, top + 30);
-  scale(HEART_SCALE);
+  translate(-width / 2 + 54, -height / 2 + 54);
+
+  pulses = pulses.filter(p => now - p.born < p.duration);
+
+  for (const p of pulses) {
+    const t = (now - p.born) / p.duration;
+    const fade = (1 - t) * (1 - t);
+    const radius = 14 + (1 - Math.pow(1 - t, 2)) * lerp(28, 52, p.urgency);
+
+    fill(255, 25, 25, fade * max(0, p.urgency - 0.25) * 100);
+    stroke(255, 30, 30, fade * lerp(130, 255, p.urgency));
+    strokeWeight(lerp(2.5, 5, p.urgency));
+    circle(0, 0, radius * 2);
+  }
+
+  const latest = pulses[pulses.length - 1];
+  const beat = latest ? Math.sin(((now - latest.born) / latest.duration) * Math.PI) * latest.urgency * 0.22 : 0;
+
+  scale(HEART_SCALE * (1 + beat));
   animation(ani, 0, 0);
   pop();
 }
