@@ -16,17 +16,16 @@ import {
   followChaseCamera,
   shakeCamera,
   snapCamera
-} from '../core/camera.js';
-import { playMusic, fadeOutMusic } from '../core/music.js';
-import { playSound } from '../core/sound.js';
-import { debugEnabled } from '../core/debug.js';
-import { getLevel } from './registry.js';
-import { toWorldPlacement } from './grid.js';
+} from './camera.js';
+import { playMusic, fadeOutMusic } from './music.js';
+import { playSound } from './sound.js';
+import { debugEnabled } from './debug.js';
+import { levels, toWorldPlacement } from '../levels/levels.js';
 
 const doorImages = new Map();
 
 export function loadLevel(levelId, game) {
-  const level = getLevel(levelId);
+  const level = levels[levelId];
 
   if (!level) {
     throw new Error(`Unknown level ID: ${levelId}`);

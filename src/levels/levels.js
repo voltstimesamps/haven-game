@@ -31,6 +31,24 @@ const SHARED_PLAYER_ANIMATIONS = {
 
 const BACKGROUND = '#0a0605';
 
+// when designing levels we use tile-based coordinates to make things simpler (fractional values permitted)
+export function toWorldPlacement(level, placement) {
+  const size = level.tiles.size;
+  const tile = placement.tile ?? { col: 0, row: 0 };
+
+  return {
+    ...placement,
+    x: level.tiles.originX + tile.col * size,
+    y: level.tiles.originY + tile.row * size,
+    ...(placement.widthTiles !== undefined
+      ? { width: placement.widthTiles * size }
+      : {}),
+    ...(placement.heightTiles !== undefined
+      ? { height: placement.heightTiles * size }
+      : {})
+  };
+}
+
 const CAMPAIGN_MAP = `
        ##############################################################
        #                                     #                      #
