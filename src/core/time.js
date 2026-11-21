@@ -1,0 +1,1 @@
+export const FRAME_SECONDS = 1 / 60;

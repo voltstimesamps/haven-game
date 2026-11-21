@@ -4,7 +4,7 @@ import {
   updateLevel,
   drawLevel,
   drawLevelOverlay
-} from './level.js';
+} from '../level/level.js';
 
 import { hudText, drawHealth, drawItems } from './hud.js';
 
@@ -126,8 +126,9 @@ function drawPlayButton() {
   stroke(0);
   strokeWeight(5);
   rect(PLAY_BUTTON.x, PLAY_BUTTON.y, PLAY_BUTTON.width, PLAY_BUTTON.height, 10);
-  fill(0);
-  noStroke();
+  fill(255);
+  stroke(0);
+  strokeWeight(2);
   textSize(30);
   textAlign(CENTER, CENTER);
   text('PLAY', PLAY_BUTTON.x, PLAY_BUTTON.y);
