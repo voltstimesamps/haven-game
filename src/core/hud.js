@@ -20,8 +20,7 @@ function getHeart() {
 export function hudText(message, x, y, size = 24) {
   push();
   fill(255);
-  stroke(0);
-  strokeWeight(2);
+  noStroke();
   textSize(size);
   textAlign(CENTER, CENTER);
   text(message, x, y);
@@ -40,8 +39,7 @@ export function drawItems(selected) {
   push();
   textSize(18);
   textAlign(LEFT, CENTER);
-  strokeWeight(2);
-  stroke(0);
+  noStroke();
 
   let x = left;
 
@@ -88,21 +86,5 @@ export function drawHealth(player) {
   translate(left + 30, top + 30);
   scale(HEART_SCALE);
   animation(ani, 0, 0);
-  pop();
-
-  // bar next to heart (might want to keep this?? idk)
-  const barX = left + 66;
-  const barY = top + 22;
-  const barW = 160;
-  const barH = 16;
-
-  push();
-  noStroke();
-  fill('#00000099');
-  rect(barX - 3, barY - 3, barW + 6, barH + 6);
-  fill('#3a0d0d');
-  rect(barX, barY, barW, barH);
-  fill('#c0281e');
-  rect(barX, barY, barW * fraction, barH);
   pop();
 }

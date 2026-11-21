@@ -126,9 +126,8 @@ function drawPlayButton() {
   stroke(0);
   strokeWeight(5);
   rect(PLAY_BUTTON.x, PLAY_BUTTON.y, PLAY_BUTTON.width, PLAY_BUTTON.height, 10);
-  fill(255);
-  stroke(0);
-  strokeWeight(2);
+  fill(0);
+  noStroke();
   textSize(30);
   textAlign(CENTER, CENTER);
   text('PLAY', PLAY_BUTTON.x, PLAY_BUTTON.y);

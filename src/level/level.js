@@ -117,8 +117,7 @@ function drawSigns(signs = [], level) {
   textAlign(CENTER, CENTER);
   textSize(9);
   fill(232, 214, 184);
-  stroke(0);
-  strokeWeight(2);
+  noStroke();
 
   for (const sign of signs) {
     const position = toWorldPlacement(level, sign);
