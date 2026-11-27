@@ -23,12 +23,6 @@ export function installCrashRecovery(onRestart) {
     e.preventDefault();
     haltGame(new Error('WebGL context lost.'));
   });
-
-  setInterval(() => {
-    if (!halted && !document.hidden && performance.now() - lastTick > 2000) {
-      haltGame(lastError ?? new Error('Game loop stopped responding.'));
-    }
-  }, 1000);
 }
 
 export function guardFrame(fn) {
