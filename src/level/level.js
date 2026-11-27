@@ -45,6 +45,7 @@ import {
   resetOverlay,
   drawCutsceneOverlay
 } from './overlay.js';
+import { drawReferenceCursor } from '../entities/heldItem.js';
 
 // states.js uses this to know whether the player has control yet
 export { isIntroFinished } from './cutscenes.js';
@@ -216,6 +217,7 @@ export function drawLevelOverlay(game) {
   }
 
   camera.on();
+  drawReferenceCursor(game.selectedItem, game.player);
   drawDynamite(game.dynamite, game.player, game.selectedItem === 'dynamite');
   drawPogo(game.pogo, game.player, game.selectedItem === 'pogo');
   drawChaser(game.chaser, game.player);

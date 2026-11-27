@@ -4,7 +4,32 @@ const AIM_SMOOTHING = 0.35;
 const SURFACE_PADDING = 6; // extra buffer to prevent 1-frame movement clipping
 
 export function mouseAngleFrom() {
-  return atan2(mouse.y - camera.y, mouse.x - camera.x);
+  return atan2(mouseY, mouseX);
+}
+
+export function drawReferenceCursor(item, player, active = true) {
+  if (!item || !player || !active || !player.inputEnabled) {
+    cursor(ARROW);
+    return;
+  }
+
+  noCursor();
+
+  const playerScreenX = (player.x - camera.x) * camera.zoom;
+  const playerScreenY = (player.y - camera.y) * camera.zoom;
+
+  const reticleX = playerScreenX + mouseX;
+  const reticleY = playerScreenY + mouseY;
+
+  push();
+  resetMatrix();
+
+  translate(reticleX, reticleY);
+  noFill();
+  stroke(255, 70, 70);
+  strokeWeight(2);
+  circle(0, 0, 16);
+  pop();
 }
 
 export function initHeldItem(
