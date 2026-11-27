@@ -13,7 +13,7 @@ export function createTileGroups(level) {
     group.tile = character;
     group.w = size;
     group.h = size;
-    group.solid = definition.solid === true;
+    group.solid = false;
 
     // level tiles are static (not simulated physics objects)
     group.physics = 'static';
@@ -27,15 +27,91 @@ export function createTileGroups(level) {
       applyTint(group, definition, level);
     }
 
-    // ground checks and the pogo only count level collisions.
+    // prevent level tile visuals from having individual colliders
     for (const tile of group) {
-      tile.isTile = true;
+      tile.deleteColliders();
+      tile.physicsEnabled = false;
     }
 
     groups.push(group);
   }
 
+  const terrainGroup = buildUnifiedColliderSprite(level);
+  if (terrainGroup) {
+    groups.push(terrainGroup);
+  }
+
   return groups;
+}
+
+// merge all tiles together into a single hitbox
+function buildUnifiedColliderSprite(level) {
+  const { size, originX, originY, definitions } = level.tiles;
+  const rows = getMapRows(level);
+  const rowCount = rows.length;
+  const colCount = getMapColumns(level);
+
+  const visited = Array.from({ length: rowCount }, () =>
+    Array(colCount).fill(false)
+  );
+
+  const isSolidAt = (r, c) => {
+    const ch = rows[r]?.[c];
+    return ch && definitions[ch]?.solid === true;
+  };
+
+  const terrainGroup = new Group();
+  terrainGroup.physics = 'static';
+  terrainGroup.visible = false;
+  terrainGroup.solid = true;
+
+  const terrain = new terrainGroup.Sprite(originX, originY, size, size);
+  terrain.deleteColliders();
+  terrain.isTile = true;
+
+  let hasColliders = false;
+
+  for (let r = 0; r < rowCount; r++) {
+    for (let c = 0; c < colCount; c++) {
+      if (visited[r][c] || !isSolidAt(r, c)) continue;
+
+      let w = 1;
+      while (c + w < colCount && !visited[r][c + w] && isSolidAt(r, c + w)) {
+        w++;
+      }
+
+      let h = 1;
+      while (r + h < rowCount) {
+        let rowMatches = true;
+        for (let dx = 0; dx < w; dx++) {
+          if (visited[r + h][c + dx] || !isSolidAt(r + h, c + dx)) {
+            rowMatches = false;
+            break;
+          }
+        }
+        if (!rowMatches) break;
+        h++;
+      }
+
+      for (let dy = 0; dy < h; dy++) {
+        for (let dx = 0; dx < w; dx++) {
+          visited[r + dy][c + dx] = true;
+        }
+      }
+
+      const offsetX = (c + (w - 1) / 2) * size;
+      const offsetY = (r + (h - 1) / 2) * size;
+      terrain.addCollider(offsetX, offsetY, w * size, h * size);
+      hasColliders = true;
+    }
+  }
+
+  if (!hasColliders) {
+    terrainGroup.deleteAll();
+    return null;
+  }
+
+  return terrainGroup;
 }
 
 // tint can be one colour or a list to pick from per tile.
