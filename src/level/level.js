@@ -82,7 +82,7 @@ export function loadLevel(levelId, game) {
   }
 
   if (escapeDoor) {
-    game.escapeDoor = createEscapeDoor(toWorldPlacement(level, escapeDoor));
+    game.escapeDoor = createEscapeDoor(toWorldPlacement(level, escapeDoor), level);
   }
 
   if (level.intro === 'door') {
