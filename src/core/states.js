@@ -20,8 +20,9 @@ import { playSound } from './sound.js';
 import { game } from './game.js';
 
 const menu = {
-  enter() {
+  async enter() {
     loadLevel('menu/mainmenu', game);
+    await loadAll();
     playMusic('chill');
   },
 
@@ -49,8 +50,9 @@ const menu = {
 };
 
 const play = {
-  enter() {
+  async enter() {
     loadLevel('campaign1/one', game);
+    await loadAll();
     resetClock();
     stopMusic();
   },
