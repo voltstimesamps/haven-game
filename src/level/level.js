@@ -135,6 +135,14 @@ export function updateLevel(game) {
 
   const exitStatus = updateExit(game);
 
+  // dynamite is up here so that any explosions continue to work during exit sequence
+  updateDynamite(
+    game.dynamite,
+    game.player,
+    game.selectedItem === 'dynamite',
+    game.chaser
+  );
+
   if (exitStatus) {
     return exitStatus;
   }
@@ -142,12 +150,6 @@ export function updateLevel(game) {
   updateItemSelection(game);
 
   // update stuff that proposes velocity change before applying it
-  updateDynamite(
-    game.dynamite,
-    game.player,
-    game.selectedItem === 'dynamite',
-    game.chaser
-  );
   updatePlayer(game.player);
   updatePogo(game.pogo, game.player, game.selectedItem === 'pogo');
 
