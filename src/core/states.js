@@ -90,7 +90,7 @@ const play = {
     drawItems(game.selectedItem);
 
     if (game.chaseStarted) {
-      hudText('CHASER INCOMING', 0, -height / 2 + 40);
+      hudText('CRAG INCOMING', 0, -height / 2 + 40);
       hudText(formatClock(getClock()), 0, -height / 2 + 70);
     }
   },

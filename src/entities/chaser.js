@@ -20,6 +20,20 @@ const START_SPEED = 1;
 const MAX_SPEED = 4;
 const SPEED_GAIN_PER_SECOND = 0.2;
 
+const SPRITE_FRAME_W = 480;
+const SPRITE_FRAME_H = 473;
+const SPRITE_FRAME_COUNT = 217;
+const SPRITE_SHEET_COLS = 15;
+
+// how big is crag visually
+const VISUAL_SCALE = 3.0;
+
+const BOB_AMPLITUDE = 5;
+const BOB_FREQUENCY = 8;
+
+let chaserSheet = null;
+let chaserSheetRequested = false;
+
 export function createChaser(settings) {
   const sprite = Sprite.withSensor(
     settings.x,
@@ -29,7 +43,7 @@ export function createChaser(settings) {
     'kinematic'
   );
 
-  sprite.debug = debugEnabled('chaser');
+  sprite.draw = () => {};
   sprite.ignoreRays = true;
   sprite.isChaser = true;
 
@@ -40,7 +54,9 @@ export function createChaser(settings) {
     particles: [],
     particleEmitTimer: 0,
     stunRemaining: 0,
-    age: 0
+    age: 0,
+    chaseTime: 0,
+    facingLeft: false
   };
 }
 
@@ -97,6 +113,12 @@ export function updateChaser(chaser, player) {
   sprite.vel.x = (dx / distance) * chaser.speed;
   sprite.vel.y = (dy / distance) * chaser.speed;
 
+  if (Math.abs(dx) > 1) {
+    chaser.facingLeft = dx < 0;
+  }
+
+  chaser.chaseTime += FRAME_SECONDS;
+
   return overlaps(sprite, player);
 }
 
@@ -143,7 +165,7 @@ function emitParticles(chaser, count, radius) {
       'dynamic'
     );
 
-    particle.color = random() > 0.5 ? '#3e171a' : '#4e1116';
+    particle.color = random() > 0.5 ? '#1e0f25' : '#23101e';
     particle.opacity = random(0.45, 0.9);
     particle.gravityScale = 0.35;
     particle.friction = 0;
@@ -209,93 +231,56 @@ export function knockbackChaser(chaser, blastX, blastY) {
   );
 }
 
-// draw the chaser with debug renderers as we dont have assets right now.
 export function drawChaser(chaser, player) {
   if (!chaser) {
+    return;
+  }
+
+  if (!chaserSheet || !chaserSheet.width) {
     return;
   }
 
   const sprite = chaser.sprite;
   const cinematic = chaser.introRemaining > 0;
 
-  if (cinematic) {
-    drawArrivalCinematic(chaser);
-  }
+  const progress = cinematic
+    ? 1 - chaser.introRemaining / CINEMATIC_SECONDS
+    : 1;
+  const frameIndex = Math.min(
+    SPRITE_FRAME_COUNT - 1,
+    Math.max(0, Math.floor(progress * SPRITE_FRAME_COUNT))
+  );
 
-  if (!debugEnabled('chaser')) {
-    return;
-  }
+  const col = frameIndex % SPRITE_SHEET_COLS;
+  const row = Math.floor(frameIndex / SPRITE_SHEET_COLS);
+  const sx = col * SPRITE_FRAME_W;
+  const sy = row * SPRITE_FRAME_H;
+
+  // bounce only when actively chasing
+  const isChasing = !cinematic && chaser.stunRemaining <= 0;
+  const bobOffset = isChasing
+    ? Math.sin(chaser.chaseTime * BOB_FREQUENCY) * BOB_AMPLITUDE
+    : 0;
+
+  const drawW = sprite.w * VISUAL_SCALE;
+  const drawH = drawW * (SPRITE_FRAME_H / SPRITE_FRAME_W);
 
   push();
-
-  if (player) {
-    stroke(130, 20, 30);
-    strokeWeight(1);
-    line(sprite.x, sprite.y, player.x, player.y);
-
-    const distance = dist(sprite.x, sprite.y, player.x, player.y);
-    noStroke();
-    fill(130, 20, 30);
-    textSize(7);
-    textAlign(CENTER, CENTER);
-    text(
-      Math.round(distance) + 'px',
-      (sprite.x + player.x) / 2,
-      (sprite.y + player.y) / 2 - 6
-    );
+  translate(sprite.x, sprite.y + bobOffset);
+  if (!chaser.facingLeft) {
+    scale(-1, 1);
   }
-
-  rectMode(CENTER);
-  const flash = cinematic && Math.floor(chaser.age * 10) % 2 === 0;
-  fill(flash ? 150 : 75, flash ? 20 : 8, flash ? 30 : 12, 150);
-  stroke(160, 25, 35);
-  strokeWeight(2);
-  rect(sprite.x, sprite.y, sprite.w, sprite.h);
-
-  strokeWeight(1);
-  line(
-    sprite.x - sprite.w / 2,
-    sprite.y - sprite.h / 2,
-    sprite.x + sprite.w / 2,
-    sprite.y + sprite.h / 2
+  imageMode(CENTER);
+  image(
+    chaserSheet,
+    0,
+    0,
+    drawW,
+    drawH,
+    sx,
+    sy,
+    SPRITE_FRAME_W,
+    SPRITE_FRAME_H
   );
-  line(
-    sprite.x + sprite.w / 2,
-    sprite.y - sprite.h / 2,
-    sprite.x - sprite.w / 2,
-    sprite.y + sprite.h / 2
-  );
-
-  noStroke();
-  fill(220, 40, 50);
-  textSize(8);
-  textAlign(CENTER, BOTTOM);
-  text('CHASER', sprite.x, sprite.y - sprite.h / 2 - 9);
-  fill(180, 35, 45);
-  textSize(6);
-  text(
-    cinematic
-      ? 'arriving...'
-      : chaser.stunRemaining > 0
-        ? 'STUNNED!!'
-        : chaser.speed.toFixed(2) + ' m/s',
-    sprite.x,
-    sprite.y - sprite.h / 2 - 2
-  );
-
-  pop();
-}
-
-function drawArrivalCinematic(chaser) {
-  const sprite = chaser.sprite;
-  const progress = 1 - chaser.introRemaining / CINEMATIC_SECONDS;
-  const pulse = 0.5 + 0.5 * sin(chaser.age * 18);
-
-  push();
-  noStroke();
-  fill(70, 5, 10, 100 + pulse * 80);
-  ellipse(sprite.x, sprite.y, 56 + progress * 24);
-  fill(220, 25, 35, 160 + pulse * 80);
-  ellipse(sprite.x, sprite.y, 18 + pulse * 10);
   pop();
 }
