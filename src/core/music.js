@@ -30,6 +30,10 @@ function getTrack(name) {
   return loaded[name];
 }
 
+export function preloadMusic() {
+  Object.keys(TRACKS).forEach((name) => getTrack(name));
+}
+
 // switches track if track is changing.
 export function playMusic(name) {
   if (!TRACKS[name]) {

@@ -1,6 +1,6 @@
 import { debugEnabled } from '../core/debug.js';
 
-// big enemy guy
+// crag e. rock (e for evil)
 // flies towards dan through walls while spilling physics particles everywhere to make clear it's evilness
 
 const FRAME_SECONDS = 1 / 60;
@@ -33,6 +33,17 @@ const BOB_FREQUENCY = 8;
 
 let chaserSheet = null;
 let chaserSheetRequested = false;
+
+export function ensureChaserSheetLoaded() {
+  if (chaserSheetRequested) {
+    return;
+  }
+
+  chaserSheetRequested = true;
+  const img = loadImage('assets/animations/CragE.png', (loaded) => {
+    chaserSheet = loaded;
+  });
+}
 
 export function createChaser(settings) {
   const sprite = Sprite.withSensor(

@@ -46,6 +46,8 @@ import {
   drawCutsceneOverlay
 } from './overlay.js';
 import { drawReferenceCursor } from '../entities/heldItem.js';
+import { ensureChaserSheetLoaded } from '../entities/chaser.js';
+import { preloadMusic } from '../core/music.js';
 
 // states.js uses this to know whether the player has control yet
 export { isIntroFinished } from './cutscenes.js';
@@ -65,6 +67,9 @@ export function loadLevel(levelId, game) {
 
   game.backdrop = createBackdrop(level);
   game.tileGroups = createTileGroups(level);
+
+  ensureChaserSheetLoaded();
+  preloadMusic();
 
   game.player = createPlayer(toWorldPlacement(level, level.player));
   game.dynamite = createDynamite();
